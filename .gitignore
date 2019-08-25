@@ -15,6 +15,10 @@ node_modules/
 /out/
 /build/
 pom.yml
-.mvn
 /gradle.properties
 /maven-push.gradle
+/.mvn/
+gradle/
+gradlew
+gradlew.bat
+local.properties
