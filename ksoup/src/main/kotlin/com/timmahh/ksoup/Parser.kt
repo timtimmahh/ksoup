@@ -1,29 +1,55 @@
 package com.timmahh.ksoup
 
 import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.io.InputStream
 import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.KProperty1
+
+interface Converter<in V : Any> {
+	fun convert(element: Element, item: V)
+}
 
 /**
  * A container for each command to extract information from an Element,
  * and stuff it into an object instance field.
  */
-internal data class SelectorConverter<in V : Any>(private val css: String,
-                                         private val multi: Boolean = false,
-                                         private val command: (Element, V) -> Unit) {
+internal data class SelectorConverter<in V : Any>(
+		private val css: String,
+		private val firstOnly: Boolean = true,
+		private val command: (Element, V) -> Unit) : Converter<V> {
 
-    fun convert(doc: Document, item: V): Unit = this.convert(doc.root() as Element, item)
+//    fun convert(doc: Document, item: V): Unit = this.convert(doc.root() as Element, item)
+	
+	override fun convert(element: Element, item: V) =
+			if (firstOnly) command(element.selectFirst(css), item)
+			else element.select(css).forEach { command(it, item) }
+	
+}
 
-    fun convert(element: Element, item: V) =
-            if (multi) element.select(css).forEach { command(it, item) }
-            else command(element.selectFirst(css), item)
+internal data class CollectionConverter<in V : Any, T : Any>(
+		private val css: String,
+		private val transform: (Element) -> T,
+		private val command: (List<T>, V) -> Unit) : Converter<V> {
+	override fun convert(element: Element, item: V) =
+			command(element.select(css).map(transform), item)
+}
 
+internal data class MapConverter<in V : Any, K : Any, T : Any>(
+		private val css: String,
+		private val keySelector: (Element) -> K,
+		private val valueSelector: (Element) -> T,
+		private val command: (Map<K, T>, V) -> Unit
+                                                              ) : Converter<V> {
+	override fun convert(element: Element, item: V) =
+			command(element.select(css).associateBy(keySelector, valueSelector), item)
 }
 
 abstract class ParseBuilder<V : Any> {
-    abstract val build: SimpleParser<V>
+	
+	operator fun invoke(): SimpleParser<V> = this.build
+	
+	protected abstract val build: SimpleParser<V>
 }
 
 /**
@@ -31,7 +57,7 @@ abstract class ParseBuilder<V : Any> {
  * Depends on how the more complicated use cases pan out.
  */
 internal interface Parser<out V> {
-    fun parse(html: Document): V
+	fun parse(root: Element): V
 }
 
 @KSoupDsl
@@ -64,13 +90,13 @@ open class SimpleParser<V: Any> : ParserBase<V> {
     constructor(): super()
 
     constructor(generator: () -> V): super(generator)
-
-    private var selectorConverters: MutableList<SelectorConverter<V>> = mutableListOf()
+	
+	private var selectorConverters: MutableList<Converter<V>> = mutableListOf()
 
     internal fun parse(element: Element, instance: V) =
             selectorConverters.forEach { it.convert(element, instance) }
-
-    override fun parse(html: Document): V = instanceGenerator().apply { parse(html.root() as Element, this) }
+	
+	override fun parse(root: Element): V = instanceGenerator().apply { parse(root, this) }
 
     internal fun parse(byteStream: InputStream, charset: String = "UTF-8", baseUrl: String = ""): V =
             parse(Jsoup.parse(byteStream, charset, baseUrl))
@@ -87,7 +113,7 @@ open class SimpleParser<V: Any> : ParserBase<V> {
      */
     @Suppress("MemberVisibilityCanBePrivate")
     fun element(css: String, convert: (Element, V) -> Unit) =
-        selectorConverters.add(SelectorConverter(css, command = convert))
+		    selectorConverters.plusAssign(SelectorConverter(css, command = convert))
 
     /**
      * If I find a match for your CSS selector, I'll call your extractor function, and pass it an Element.
@@ -99,10 +125,14 @@ open class SimpleParser<V: Any> : ParserBase<V> {
      */
     @Suppress("MemberVisibilityCanBePrivate")
     fun <P> element(css: String, toProperty: KMutableProperty1<in V, P>, from: Element.() -> P) =
-        selectorConverters.add(SelectorConverter(css) { e, v -> toProperty.set(v, e.from()) })
+		    selectorConverters.plusAssign(SelectorConverter(css) { e, v -> toProperty.set(v, e.from()) })
+	
+	private fun elements(css: String, convert: (Element, V) -> Unit) =
+			selectorConverters.plusAssign(SelectorConverter(css, true, convert))
 
-    fun elements(css: String, convert: (Element, V) -> Unit) =
-        selectorConverters.add(SelectorConverter(css, true, convert))
+/*    fun <P : Collection<T>, T : Any> elements(css: String, toProperty: KMutableProperty1<in V, P>, convert: Elements.() -> T) {
+
+    }*/
 
     /**
      * If I find a match for your CSS selector, I'll call your extractor function, and pass it a String.
@@ -155,13 +185,52 @@ open class SimpleParser<V: Any> : ParserBase<V> {
 
     fun long(css: String, property: KMutableProperty1<V, Long>) =
         element(css, property) { text().toLongOrNull() ?: 0L }
+	
+	private inline fun <T : Any> multi(css: String,
+	                                   builder: SimpleParser<T>,
+	                                   crossinline convert: V.(T) -> Unit) =
+//        selectorConverters.plusAssign()
+			elements(css) { e, v -> v.convert(builder.parse(e)) }
+	
+	fun <C : MutableCollection<T>, T : Any> collection(css: String,
+	                                                   property: KProperty1<V, C>,
+	                                                   builder: SimpleParser<T>) =
+			multi(css, builder) { e -> property.get(this) += e }
+	
+	fun <C : MutableCollection<T>, T : Any> collection(css: String,
+	                                                   property: KProperty1<V, C>,
+	                                                   transform: (Element) -> T) =
+			selectorConverters.plusAssign(
+					CollectionConverter(css, transform) { list, v ->
+						property.get(v).addAll(list)
+					}
+			                             )
+	
+	fun <M : MutableMap<K, T>, K : Any, T : Any> map(css: String,
+	                                                 property: KProperty1<V, M>,
+	                                                 builder: SimpleParser<Pair<K, T>>) =
+//        selectorConverters.plusAssign(MapConverter<V, K, T>(css, ))
+			multi(css, builder) { e -> property.get(this) += e }
+	
+	fun <M : MutableMap<K, T>, K : Any, T : Any> map(css: String,
+	                                                 property: KProperty1<V, M>,
+	                                                 keySelector: (Element) -> K,
+	                                                 valueSelector: (Element) -> T) =
+			selectorConverters.plusAssign(
+					MapConverter(css, keySelector, valueSelector) { map, v ->
+						property.get(v).putAll(map)
+					}
+			                             )
 
     /**
      * Finds a match for the CSS selector and passes the Element to another SimpleParser in order
      * to nest/reuse selector statements.
      */
-    fun parser(css: String, parser: NestedParser<V>.() -> Unit) =
+    fun parser(css: String,
+               parser: NestedParser<V>.() -> Unit) =
         element(css, NestedParser<V>().apply(parser)::parse)
+
+//    fun parser(css: String, parser: NestedParser<V>) = element(css, parser::parse)
 
     class NestedParser<V : Any> : SimpleParser<V>()
 

@@ -15,7 +15,7 @@ class KSoupConverterFactory : Converter.Factory() {
             retrofit: Retrofit
     ): Converter<ResponseBody, *>? =
             (annotations.find { it is ResponseParser } as? ResponseParser)
-                    ?.parser?.objectInstance?.let { KSoupConverter(it.build, retrofit.baseUrl()) }
+		            ?.parser?.objectInstance?.let { KSoupConverter(it(), retrofit.baseUrl()) }
 }
 
 class KSoupConverter<T : Any>(private val builder: SimpleParser<T>, private val httpUrl: HttpUrl) :
