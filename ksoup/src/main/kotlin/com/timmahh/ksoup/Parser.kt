@@ -38,7 +38,11 @@ internal data class SelectorConverter<in V : Any>(
 //    fun convert(doc: Document, item: V): Unit = this.convert(doc.root() as Element, item)
 	
 	override fun convert(element: Element, item: V) =
-			if (firstOnly) command(element.selectFirst(css), item)
+			if (firstOnly)
+				command(element.selectFirst(css)
+						?: element.also {
+							it.logE("SelectorConverter")
+						}, item)
 			else element.select(css).forEach { command(it, item) }
 	
 }
