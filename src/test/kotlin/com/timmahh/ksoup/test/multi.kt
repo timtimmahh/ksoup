@@ -1,4 +1,4 @@
-package io.mikael.ksoup.test
+package com.timmahh.ksoup.test
 
 import org.junit.jupiter.api.Test
 

@@ -10,3 +10,7 @@
 node_modules/
 /dump.*
 /application-default.yml
+
+# Project exclude paths
+/out/
+/build/

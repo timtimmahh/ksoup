@@ -1,10 +1,6 @@
-package io.mikael.ksoup.test
+package com.timmahh.ksoup.test
 
-import io.mikael.ksoup.JdkHttpClient
-import io.mikael.ksoup.KSoup
-import org.jsoup.nodes.Element
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import com.timmahh.ksoup.JdkHttpClient
 
 class ClientTests : StaticWebTest() {
 
@@ -20,7 +16,7 @@ class ClientTests : StaticWebTest() {
 
     class JdkSubclass : JdkHttpClient()
 
-    @Test
+   /* @Test
     fun `create a new basic client`() {
         val gh = KSoup.extract<GitHubPage> {
             result { GitHubPage() }
@@ -46,6 +42,6 @@ class ClientTests : StaticWebTest() {
         assertEquals("mikaelhg", gh.username)
         assertEquals("Mikael Gueck", gh.fullName)
         assertRequestPath("/mikaelhg")
-    }
+    }*/
 
 }

@@ -1,12 +1,11 @@
-package io.mikael.ksoup.test
+package com.timmahh.ksoup.test
 
-import io.mikael.ksoup.getClassLogger
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import java.util.logging.LogManager
 
@@ -38,7 +37,7 @@ open class StaticWebTest {
 
     protected lateinit var staticContentResolver: (String) -> String?
 
-    protected val log = getClassLogger()
+    protected val log = java.util.logging.Logger.getLogger(this::class.java.name)
 
     init {
         resourceAsStream("logging.properties").use {

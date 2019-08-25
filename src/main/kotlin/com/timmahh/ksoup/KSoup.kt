@@ -1,11 +1,19 @@
-package io.mikael.ksoup
+package com.timmahh.ksoup
+
+import org.jsoup.nodes.Document
+import kotlin.reflect.KClass
 
 @DslMarker
 annotation class KSoupDsl
 
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class ResponseParser(val parser: KClass<out ParseBuilder<*>>)
+
 /**
  * Invoke the methods on this main DSL class to fetch data using JSoup.
  */
+@Suppress("MemberVisibilityCanBePrivate")
 object KSoup {
 
     /**
@@ -40,13 +48,16 @@ object KSoup {
      * }
      * ```
      */
-    fun <V : Any> extract(init: SimpleExtractor<V>.() -> Unit): V
-            = SimpleExtractor<V>().apply(init).extract()
+    fun <V : Any> build(init: SimpleParser<V>.() -> Unit): SimpleParser<V> =
+            SimpleParser<V>().apply(init)
 
-    /**
-     *
-     */
-    fun <V : Any> simple(init: SimpleExtractor<V>.() -> Unit): SimpleExtractor<V>
-            = SimpleExtractor<V>().apply(init)
+    fun <V : Any> build(instanceGenerator: () -> V, init: SimpleParser<V>.() -> Unit): SimpleParser<V> =
+            SimpleParser(instanceGenerator).apply(init)
+
+    fun <V : Any> Document.parse(init: SimpleParser<V>.() -> Unit): V =
+            build(init).parse(this)
+
+    fun <V : Any> Document.parse(instanceGenerator: () -> V, init: SimpleParser<V>.() -> Unit) =
+            build(instanceGenerator, init).parse(this)
 
 }

@@ -1,9 +1,4 @@
-package io.mikael.ksoup.test
-
-import io.mikael.ksoup.KSoup
-import org.jsoup.nodes.Element
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+package com.timmahh.ksoup.test
 
 class SimpleTests : StaticWebTest() {
 
@@ -17,7 +12,7 @@ class SimpleTests : StaticWebTest() {
         }
     }
 
-    @Test
+   /* @Test
     fun `property reference`() {
         val gh = KSoup.extract<GitHubPage> {
             result { GitHubPage() }
@@ -82,6 +77,6 @@ class SimpleTests : StaticWebTest() {
             }
         }
         val ex2 = ex1.copy(url = testUrl("/huima"))
-    }
+    }*/
 
 }
