@@ -14,3 +14,7 @@ node_modules/
 # Project exclude paths
 /out/
 /build/
+pom.yml
+.mvn
+/gradle.properties
+/maven-push.gradle
