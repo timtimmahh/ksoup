@@ -4,9 +4,9 @@ buildscript {
     ext.retrofit_version = '2.6.1'
     repositories {
         mavenCentral()
-        maven { url "https://jitpack.io" }
         maven { url "https://maven.google.com" }
         jcenter()
+        maven { url "https://jitpack.io" }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.5.0'
@@ -20,9 +20,9 @@ buildscript {
 allprojects {
     repositories {
         mavenCentral()
-        maven { url "https://jitpack.io" }
         maven { url "https://maven.google.com" }
         jcenter()
+        maven { url "https://jitpack.io" }
     }
 }
 

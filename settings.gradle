@@ -14,4 +14,4 @@ include 'shared'
 include 'api'
 include 'services:webservice'
 */
-include 'ksoup'
+include ':ksoup'
