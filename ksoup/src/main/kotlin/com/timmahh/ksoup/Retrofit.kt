@@ -16,6 +16,7 @@
 
 package com.timmahh.ksoup
 
+import android.util.Log
 import okhttp3.HttpUrl
 import okhttp3.ResponseBody
 import retrofit2.Converter
@@ -38,7 +39,11 @@ class KSoupConverter<T : Any>(private val builder: SimpleParser<T>, private val 
         Converter<ResponseBody, T> {
 
     override fun convert(value: ResponseBody): T? =
-            builder.parse(value.byteStream(),
-                    value.contentType()?.charset()?.name() ?: "UTF-8",
-                    httpUrl.uri().toString())
+		    builder.parse(value.byteStream(),
+				    value.contentType()?.charset()?.name() ?: "UTF-8",
+				    httpUrl.uri().toString()).also {
+			    if (BuildConfig.DEBUG)
+				    Log.d("KSoup Conversion Result",
+						    "Type: ${it::class} Instance: $it")
+		    }
 }
