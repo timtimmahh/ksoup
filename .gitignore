@@ -16,7 +16,7 @@ node_modules/
 /build/
 pom.yml
 #/ksoup/gradle.properties
-/ksoup/maven-push.gradle
+#/ksoup/maven-push.gradle
 /.mvn/
 local.properties
 /ksoup/build/
