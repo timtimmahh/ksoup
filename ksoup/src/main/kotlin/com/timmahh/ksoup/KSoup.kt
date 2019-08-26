@@ -82,4 +82,4 @@ fun <T : Any> buildParser(
         instanceGenerator: () -> T,
         builder: SimpleParser<T>.() -> Unit
                          ): Lazy<SimpleParser<T>> =
-        lazy { KSoup.build(instanceGenerator, builder) }
+        lazy { SimpleParser(instanceGenerator).apply(builder) }
