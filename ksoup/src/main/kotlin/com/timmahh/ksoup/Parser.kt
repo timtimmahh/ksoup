@@ -29,11 +29,8 @@ interface Converter<in V : Any> {
 	fun convert(element: Element?, item: V)
 }
 
-abstract class BaseConverter<in V : Any, P : Any>(protected open val css:
-                                                  String,
-                                         protected open val command: (P, V) ->
-                                         Unit) :
-		Converter<V>
+abstract class BaseConverter<in V : Any, P : Any>(protected open val css: String,
+												  protected open val command: (P, V) -> Unit) : Converter<V>
 
 /**
  * A container for each command to extract information from an Element,
@@ -205,7 +202,7 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	 * ```kotlin
 	 * text(".p-name", GitHubPage::fullName)
 	 * ```
-	 *//*
+	 */
 	fun text(css: String, property: KMutableProperty1<V, String>,
 	         elementText: Element.() -> String = Element::text) =
 			select(css, property, elementText)
@@ -215,7 +212,7 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 			text(css, property) { attr(attr) }
 	
 	fun float(css: String, convert: (Float, V) -> Unit) =
-			select(css) { e, v -> convert(e.text().toFloatOrNull() ?: 0f, v) }
+			select(css) { e, v -> convert(e?.text()?.toFloatOrNull() ?: 0f, v) }
 	
 	fun float(css: String, property: KMutableProperty1<V, Float>,
 	          elementText: Element.() -> String = Element::text) =
@@ -226,7 +223,7 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 			float(css, property) { attr(attr) }
 	
 	fun double(css: String, convert: (Double, V) -> Unit) =
-			select(css) { e, v -> convert(e.text().toDoubleOrNull() ?: 0.0, v) }
+			select(css) { e, v -> convert(e?.text()?.toDoubleOrNull() ?: 0.0, v) }
 	
 	fun double(css: String, property: KMutableProperty1<V, Double>,
 	           elementText: Element.() -> String = Element::text) =
@@ -237,7 +234,7 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 			double(css, property) { attr(attr) }
 	
 	fun int(css: String, convert: (Int, V) -> Unit) =
-			select(css) { e, v -> convert(e.text().toIntOrNull() ?: 0, v) }
+			select(css) { e, v -> convert(e?.text()?.toIntOrNull() ?: 0, v) }
 	
 	fun int(css: String, property: KMutableProperty1<V, Int>,
 	        elementText: Element.() -> String = Element::text) =
@@ -248,7 +245,7 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 			int(css, property) { attr(attr) }
 	
 	fun long(css: String, convert: (Long, V) -> Unit) =
-			select(css) { e, v -> convert(e.text().toLongOrNull() ?: 0L, v) }
+			select(css) { e, v -> convert(e?.text()?.toLongOrNull() ?: 0L, v) }
 	
 	fun long(css: String, property: KMutableProperty1<V, Long>,
 	         elementText: Element.() -> String = Element::text) =
@@ -256,7 +253,7 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	
 	fun long(css: String, property: KMutableProperty1<V, Long>,
 	          attr: String) =
-			long(css, property) { attr(attr) }*/
+			long(css, property) { attr(attr) }
 	
 	private inline fun <T : Any> multi(css: String,
 	                                   builder: SimpleParser<T>,
