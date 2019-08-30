@@ -21,9 +21,14 @@ import okhttp3.ResponseBody
 import retrofit2.Converter
 import retrofit2.Retrofit
 import java.lang.reflect.Type
+import kotlin.reflect.KClass
 
 
-class KSoupConverterFactory : Converter.Factory() {
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class ResponseParser(val parser: KClass<out ParseBuilder<*>>)
+
+internal class KSoupConverterFactory : Converter.Factory() {
 
     override fun responseBodyConverter(
             type: Type,
@@ -31,7 +36,12 @@ class KSoupConverterFactory : Converter.Factory() {
             retrofit: Retrofit
     ): Converter<ResponseBody, *>? =
             (annotations.find { it is ResponseParser } as? ResponseParser)
-		            ?.parser?.objectInstance?.let { KSoupConverter(it(), retrofit.baseUrl()) }
+		            ?.parser?.objectInstance?.let {
+                KSoupConverter(
+                    it(),
+                    retrofit.baseUrl()
+                )
+            }
 }
 
 class KSoupConverter<T : Any>(private val builder: SimpleParser<T>, private val httpUrl: HttpUrl) :
@@ -41,7 +51,6 @@ class KSoupConverter<T : Any>(private val builder: SimpleParser<T>, private val 
 		    builder.parse(value.byteStream(),
 				    value.contentType()?.charset()?.name() ?: "UTF-8",
 				    httpUrl.uri().toString()).also {
-			    if (BuildConfig.DEBUG)
 				    it.logE("KSoup Conversion Result")
 		    }
 }
