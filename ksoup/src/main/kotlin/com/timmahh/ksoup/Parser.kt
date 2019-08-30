@@ -190,12 +190,12 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	 * }
 	 * ```
 	 */
-	/*fun text(css: String, convert: (String, V) -> Unit) =
-			select(css) { e, v -> convert(e.text(), v) }
+	fun text(css: String, convert: (String, V) -> Unit) =
+			select(css) { e, v -> convert(e?.text() ?: "", v) }
 	
 	
 	
-	*//**
+	/**
 	 * If I find a match for your CSS selector, I'll stuff the results into your instance property.
 	 *
 	 * ## Usage:
