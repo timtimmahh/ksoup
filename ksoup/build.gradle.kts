@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.config.KotlinCompilerVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 
 plugins {
@@ -56,4 +57,10 @@ dependencies {
     testImplementation("junit:junit:4.12")
 //    androidTestImplementation("androidx.test.ext:junit:1.1.1")
 //    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions.languageVersion = "1.3"
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    languageVersion = "1.3"
 }
