@@ -17,14 +17,9 @@
 package com.timmahh.ksoup
 
 import org.jsoup.nodes.Document
-import kotlin.reflect.KClass
 
 @DslMarker
 annotation class KSoupDsl
-
-@Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ResponseParser(val parser: KClass<out ParseBuilder<*>>)
 
 /**
  * Invoke the methods on this main DSL class to fetch data using JSoup.

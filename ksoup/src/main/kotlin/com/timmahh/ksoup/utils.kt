@@ -16,13 +16,12 @@
 
 package com.timmahh.ksoup
 
-import android.util.Log
-import kotlin.reflect.KFunction
-import kotlin.reflect.KMutableProperty0
-
-inline infix fun <reified R> R.assignTo(property: KMutableProperty0<R>) = { property.set(this); property.get() }()
+/*inline infix fun <reified R> R.assignTo(property: KMutableProperty0<R>) = { property.set(this); property.get() }()
 inline infix fun <reified R> KMutableProperty0<R>.set(value: R) = { this.set(value); get() }()
-inline infix fun <reified R> KFunction<R>.set(value: R) = { this.call(value); value }()
+inline infix fun <reified R> KFunction<R>.set(value: R) = { this.call(value); value }()*/
+
+import java.util.logging.Level
+import java.util.logging.Logger
 
 fun <T : Any> T.logE(tag: String) =
-	Log.e(tag, "Type: ${this::class} Instance: $this")
+	Logger.getGlobal().log(Level.WARNING, "$tag: Type=${this::class} Instance=$this")

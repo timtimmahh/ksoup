@@ -26,7 +26,7 @@ import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 
 interface Converter<in V : Any> {
-	fun convert(element: Element, item: V)
+	fun convert(element: Element?, item: V)
 }
 
 abstract class BaseConverter<in V : Any, P : Any>(protected open val css:
@@ -40,20 +40,19 @@ abstract class BaseConverter<in V : Any, P : Any>(protected open val css:
  * and stuff it into an object instance field.
  */
 internal data class SelectorConverter<in V : Any>(
-		override val css: String,
-		private val firstOnly: Boolean = true,
-		override val command: (Element, V) -> Unit) : BaseConverter<V,
+	override val css: String,
+	private val firstOnly: Boolean = true,
+	override val command: (Element?, V) -> Unit
+) : BaseConverter<V,
 		Element>(css, command) {
 
 //    fun convert(doc: Document, item: V): Unit = this.convert(doc.root() as Element, item)
 	
-	override fun convert(element: Element, item: V) =
-			if (firstOnly)
-				command(element.selectFirst(css)
-						?: element.also {
-							it.logE("SelectorConverter")
-						}, item)
-			else element.select(css).forEach { command(it, item) }
+	override fun convert(element: Element?, item: V) =
+		css.takeUnless(String::isEmpty)?.let { css ->
+			if (firstOnly) command(element?.selectFirst(css), item)
+			else element?.select(css)?.forEach { command(it,	item) }
+		} ?: command(element?.also { it.logE("SelectorConverter") }, item)
 	
 }
 
@@ -66,35 +65,36 @@ internal data class AllSelectorConverter<in V : Any>(
 		override val command: (Elements?, V) -> Unit) : BaseConverter<V,
 		Elements>(css, command) {
 	
-	override fun convert(element: Element, item: V) =
-			command(element.select(css), item)
+	override fun convert(element: Element?, item: V) =
+			command(element?.select(css), item)
 	
 }
 
 internal data class CollectionConverter<in V : Any, T : Any>(
-		override val css: String,
-		private val transform: (Element) -> T,
-		override val command: (List<T>, V) -> Unit) : BaseConverter<V,
+	override val css: String,
+	private val transform: (Element) -> T,
+	override val command: (List<T>?, V) -> Unit
+) : BaseConverter<V,
 		List<T>>(css, command) {
-	override fun convert(element: Element, item: V) =
-			command(element.select(css).map(transform), item)
+	override fun convert(element: Element?, item: V) =
+			command(element?.select(css)?.map(transform), item)
 }
 
 internal data class MapConverter<in V : Any, K : Any, T : Any>(
-		override val css: String,
-		private val keySelector: (Element) -> K,
-		private val valueSelector: (Element) -> T,
-		override val command: (Map<K, T>, V) -> Unit
+	override val css: String,
+	private val keySelector: (Element) -> K,
+	private val valueSelector: (Element) -> T,
+	override val command: (Map<K, T>?, V) -> Unit
                                                               ) :
 		BaseConverter<V, Map<K, T>>(css, command) {
-	override fun convert(element: Element, item: V) =
-			command(element.select(css).associateBy(keySelector, valueSelector), item)
+	override fun convert(element: Element?, item: V) =
+			command(element?.select(css)?.associateBy(keySelector, valueSelector), item)
 }
 
 abstract class ParseBuilder<V : Any> {
-	
+
 	operator fun invoke(): SimpleParser<V> = this.build
-	
+
 	protected abstract val build: SimpleParser<V>
 }
 
@@ -103,7 +103,7 @@ abstract class ParseBuilder<V : Any> {
  * Depends on how the more complicated use cases pan out.
  */
 internal interface Parser<out V> {
-	fun parse(root: Element): V
+	fun parse(root: Element?): V
 }
 
 @KSoupDsl
@@ -141,12 +141,12 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	
 	private var selectorConverters: MutableList<Converter<V>> = mutableListOf()
 	
-	internal fun parse(element: Element, instance: V) =
+	internal fun parse(element: Element?, instance: V) =
 			selectorConverters.forEach { it.convert(element, instance) }
 	
-	override fun parse(root: Element): V = instanceGenerator().apply { parse(root, this) }
+	override fun parse(root: Element?): V = instanceGenerator().apply { parse(root, this) }
 	
-	internal fun parse(byteStream: InputStream, charset: String = "UTF-8", baseUrl: String = ""): V =
+	fun parse(byteStream: InputStream, charset: String = "UTF-8", baseUrl: String = ""): V =
 			parse(Jsoup.parse(byteStream, charset, baseUrl))
 	
 	/**
@@ -159,7 +159,7 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	 * }
 	 * ```
 	 */
-	fun element(css: String, convert: (Element, V) -> Unit) =
+	fun select(css: String, convert: (Element?, V) -> Unit) =
 			selectorConverters.plusAssign(SelectorConverter(css, command = convert))
 	
 	/**
@@ -170,10 +170,10 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	 * element(".p-nickname", Element::text, GitHubPage::username)
 	 * ```
 	 */
-	fun <P> element(css: String, toProperty: KMutableProperty1<in V, P>, from: Element.() -> P) =
-			selectorConverters.plusAssign(SelectorConverter(css) { e, v -> toProperty.set(v, e.from()) })
+	fun <P> select(css: String, toProperty: KMutableProperty1<in V, P>, from: Element.() -> P) =
+			selectorConverters.plusAssign(SelectorConverter(css) { e, v -> e?.let { toProperty.set(v, it.from()) } })
 	
-	fun elements(css: String, convert: (Element, V) -> Unit) =
+	fun selections(css: String, convert: (Element?, V) -> Unit) =
 			selectorConverters.plusAssign(SelectorConverter(css, false, convert))
 	
 	fun allElements(css: String, convert: (Elements?, V) -> Unit) =
@@ -193,75 +193,75 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	 * }
 	 * ```
 	 */
-	fun text(css: String, convert: (String, V) -> Unit) =
-			element(css) { e, v -> convert(e.text(), v) }
+	/*fun text(css: String, convert: (String, V) -> Unit) =
+			select(css) { e, v -> convert(e.text(), v) }
 	
 	
 	
-	/**
+	*//**
 	 * If I find a match for your CSS selector, I'll stuff the results into your instance property.
 	 *
 	 * ## Usage:
 	 * ```kotlin
 	 * text(".p-name", GitHubPage::fullName)
 	 * ```
-	 */
+	 *//*
 	fun text(css: String, property: KMutableProperty1<V, String>,
 	         elementText: Element.() -> String = Element::text) =
-			element(css, property, elementText)
+			select(css, property, elementText)
 	
 	fun text(css: String, property: KMutableProperty1<V, String>,
 	         attr: String) =
 			text(css, property) { attr(attr) }
 	
 	fun float(css: String, convert: (Float, V) -> Unit) =
-			element(css) { e, v -> convert(e.text().toFloatOrNull() ?: 0f, v) }
+			select(css) { e, v -> convert(e.text().toFloatOrNull() ?: 0f, v) }
 	
 	fun float(css: String, property: KMutableProperty1<V, Float>,
 	          elementText: Element.() -> String = Element::text) =
-			element(css, property) { elementText().toFloatOrNull() ?: 0f }
+			select(css, property) { elementText().toFloatOrNull() ?: 0f }
 	
 	fun float(css: String, property: KMutableProperty1<V, Float>,
 	          attr: String) =
 			float(css, property) { attr(attr) }
 	
 	fun double(css: String, convert: (Double, V) -> Unit) =
-			element(css) { e, v -> convert(e.text().toDoubleOrNull() ?: 0.0, v) }
+			select(css) { e, v -> convert(e.text().toDoubleOrNull() ?: 0.0, v) }
 	
 	fun double(css: String, property: KMutableProperty1<V, Double>,
 	           elementText: Element.() -> String = Element::text) =
-			element(css, property) { elementText().toDoubleOrNull() ?: 0.0 }
+			select(css, property) { elementText().toDoubleOrNull() ?: 0.0 }
 	
 	fun double(css: String, property: KMutableProperty1<V, Double>,
 	          attr: String) =
 			double(css, property) { attr(attr) }
 	
 	fun int(css: String, convert: (Int, V) -> Unit) =
-			element(css) { e, v -> convert(e.text().toIntOrNull() ?: 0, v) }
+			select(css) { e, v -> convert(e.text().toIntOrNull() ?: 0, v) }
 	
 	fun int(css: String, property: KMutableProperty1<V, Int>,
 	        elementText: Element.() -> String = Element::text) =
-			element(css, property) { elementText().toIntOrNull() ?: 0 }
+			select(css, property) { elementText().toIntOrNull() ?: 0 }
 	
 	fun int(css: String, property: KMutableProperty1<V, Int>,
 	          attr: String) =
 			int(css, property) { attr(attr) }
 	
 	fun long(css: String, convert: (Long, V) -> Unit) =
-			element(css) { e, v -> convert(e.text().toLongOrNull() ?: 0L, v) }
+			select(css) { e, v -> convert(e.text().toLongOrNull() ?: 0L, v) }
 	
 	fun long(css: String, property: KMutableProperty1<V, Long>,
 	         elementText: Element.() -> String = Element::text) =
-			element(css, property) { elementText().toLongOrNull() ?: 0L }
+			select(css, property) { elementText().toLongOrNull() ?: 0L }
 	
 	fun long(css: String, property: KMutableProperty1<V, Long>,
 	          attr: String) =
-			long(css, property) { attr(attr) }
+			long(css, property) { attr(attr) }*/
 	
 	private inline fun <T : Any> multi(css: String,
 	                                   builder: SimpleParser<T>,
 	                                   crossinline convert: V.(T) -> Unit) =
-			elements(css) { e, v -> v.convert(builder.parse(e)) }
+			selections(css) { e, v -> v.convert(builder.parse(e)) }
 	
 	fun <C : MutableCollection<T>, T : Any> collection(css: String,
 	                                                   property: KProperty1<V, C>,
@@ -279,9 +279,9 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	
 	fun <C : MutableCollection<T>, T : Any> collection(css: String,
 	                                                   property: KProperty1<V, C>,
-	                                                   transform: (Element) -> T) =
+	                                                   transform: (Element?) -> T) =
 			selectorConverters.plusAssign(CollectionConverter(css, transform) { list, v ->
-				property.get(v).addAll(list)
+				property.get(v).addAll(list ?: emptyList())
 			})
 	
 	fun <M : MutableMap<K, T>, K : Any, T : Any> map(css: String,
@@ -302,11 +302,11 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	
 	fun <M : MutableMap<K, T>, K : Any, T : Any> map(css: String,
 	                                                 property: KProperty1<V, M>,
-	                                                 keySelector: (Element) -> K,
-	                                                 valueSelector: (Element)
+	                                                 keySelector: (Element?) -> K,
+	                                                 valueSelector: (Element?)
 	                                                 -> T) =
 		selectorConverters.plusAssign(MapConverter(css, keySelector, valueSelector) { map, v ->
-			property.get(v).putAll(map)
+			property.get(v).putAll(map ?: emptyMap())
 		})
 	
 	/**
@@ -315,7 +315,7 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	 */
 	fun parser(css: String,
 	           parser: NestedParser<V>.() -> Unit) =
-			element(css, NestedParser<V>().apply(parser)::parse)
+			select(css, NestedParser<V>().apply(parser)::parse)
 
 //    fun parser(css: String, parser: NestedParser<V>) = element(css, parser::parse)
 	

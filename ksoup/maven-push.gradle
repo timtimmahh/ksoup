@@ -103,7 +103,7 @@ afterEvaluate { project ->
 //	}
 
 	task androidSourcesJar(type: Jar) {
-		from android.sourceSets.main.java.srcDirs
+		from /*android.*/sourceSets.main.java.srcDirs
 		classifier 'sources'
 	}
 
