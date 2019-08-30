@@ -289,13 +289,11 @@ open class SimpleParser<V : Any> : ParserBase<V> {
 	fun <C : MutableMap<K, T>, K : Any, T : Any> map(css: String,
 	                                                 property:
 	                                                 KProperty1<V, C>,
-	                                                 generator: () ->
-	                                                 Pair<K, T>,
 	                                                 builder:
 	                                                 SimpleParser<Pair<K, T>>.
 	                                                 () ->
-	                                                 Unit) =
-			map(css, property, SimpleParser(generator).apply(builder))
+	                                                 Unit): Unit =
+			map(css, property, SimpleParser<Pair<K, T>>().apply(builder))
 	
 	fun <M : MutableMap<K, T>, K : Any, T : Any> map(css: String,
 	                                                 property: KProperty1<V, M>,
